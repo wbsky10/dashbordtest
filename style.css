@@ -1,0 +1,648 @@
+/**
+ * ==============================================================================
+ * 経営層向けタスク管理ダッシュボード - スタイルシート (style.css)
+ * ==============================================================================
+ */
+
+:root {
+  --bg: #f5f6f8;
+  --card: #ffffff;
+  --tx: #1d2330;
+  --sub: #6b7385;
+  --bd: #e3e6ec;
+  --g: #1f9d55;
+  --y: #d9a007;
+  --r: #d63b3b;
+  --ac: #2f5fd0;
+  --bar: #e8ebf1;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14171d;
+    --card: #1d222b;
+    --tx: #e8ebf2;
+    --sub: #9aa3b5;
+    --bd: #2b313d;
+    --bar: #2b313d;
+    --ac: #6b93f0;
+    --g: #3fc77a;
+    --y: #f0c040;
+    --r: #f06666;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #14171d;
+  --card: #1d222b;
+  --tx: #e8ebf2;
+  --sub: #9aa3b5;
+  --bd: #2b313d;
+  --bar: #2b313d;
+  --ac: #6b93f0;
+  --g: #3fc77a;
+  --y: #f0c040;
+  --r: #f06666;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #f5f6f8;
+  --card: #ffffff;
+  --tx: #1d2330;
+  --sub: #6b7385;
+  --bd: #e3e6ec;
+  --g: #1f9d55;
+  --y: #d9a007;
+  --r: #d63b3b;
+  --ac: #2f5fd0;
+  --bar: #e8ebf1;
+  color-scheme: light;
+}
+
+html {
+  scroll-padding-top: env(safe-area-inset-top, 0px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--tx);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif;
+  line-height: 1.55;
+  -webkit-text-size-adjust: 100%;
+}
+
+.wrap {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+}
+
+/* ヘッダーエリア */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+h1 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.upd {
+  color: var(--sub);
+  font-size: 12px;
+}
+
+/* ヘッダー右側のアクショングループ（印刷・テーマ切替） */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-btn {
+  background: var(--card);
+  color: var(--tx);
+  border: 1px solid var(--bd);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.action-btn:hover {
+  background: var(--bg);
+  border-color: var(--sub);
+}
+
+/* KPIカードグリッド */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.kpi {
+  background: var(--card);
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.kpi .l {
+  font-size: 12px;
+  color: var(--sub);
+  margin-bottom: 4px;
+}
+
+.kpi .v {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.kpi .d {
+  font-size: 12px;
+  color: var(--sub);
+  margin-top: 4px;
+}
+
+.up {
+  color: var(--r);
+}
+
+.down {
+  color: var(--g);
+}
+
+/* 見出し */
+h2 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 20px 0 8px;
+}
+
+/* 共通カード */
+.card {
+  background: var(--card);
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+/* 経営判断が必要な事項 */
+.dec {
+  border-left: 4px solid var(--r);
+}
+
+.dec ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.dec li {
+  margin: 8px 0;
+}
+
+.dec li:first-child {
+  margin-top: 0;
+}
+
+.dec li:last-child {
+  margin-bottom: 0;
+}
+
+.tag {
+  font-size: 11px;
+  color: var(--sub);
+}
+
+/* タブ切り替えボタン */
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin: 22px 0 10px;
+}
+
+.tabs button {
+  border: 1px solid var(--bd);
+  background: var(--card);
+  color: var(--tx);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tabs button:hover:not(.on) {
+  background: var(--bg);
+}
+
+.tabs button.on {
+  background: var(--ac);
+  color: #ffffff;
+  border-color: var(--ac);
+}
+
+/* テーブルスタイル */
+.scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 680px;
+  font-size: 13px;
+}
+
+th {
+  text-align: left;
+  color: var(--sub);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--bd);
+  white-space: nowrap;
+}
+
+td {
+  padding: 10px 10px;
+  border-bottom: 1px solid var(--bd);
+  vertical-align: top;
+}
+
+tr.p {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+tr.p:hover {
+  background: var(--bg);
+}
+
+/* 信号アイコン */
+.sig {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
+.s-g { background: var(--g); }
+.s-y { background: var(--y); }
+.s-r { background: var(--r); }
+
+/* プログレスバー */
+.pb {
+  height: 8px;
+  background: var(--bar);
+  border-radius: 4px;
+  overflow: hidden;
+  min-width: 80px;
+  margin-bottom: 4px;
+}
+
+.pb i {
+  display: block;
+  height: 100%;
+  background: var(--ac);
+  border-radius: 4px;
+}
+
+/* アコーディオン詳細行 */
+.detail td {
+  background: var(--bg);
+  padding: 14px 16px;
+}
+
+.detail h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 10px 0 4px;
+}
+
+.detail h3:first-child {
+  margin-top: 0;
+}
+
+.detail ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.detail li {
+  margin: 4px 0;
+}
+
+/* 個人別一覧 */
+.ppl {
+  display: grid;
+  gap: 10px;
+}
+
+.person {
+  display: grid;
+  grid-template-columns: 80px 1fr 130px;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.load {
+  height: 10px;
+  background: var(--bar);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.load i {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+}
+
+/* 注釈・ヒントテキスト */
+.note {
+  color: var(--sub);
+  font-size: 12px;
+  margin-top: 12px;
+}
+
+.hint {
+  color: var(--sub);
+  font-size: 12px;
+  margin: 0 0 8px;
+}
+
+/* エラーバウンダリ表示 */
+.error-box {
+  background: #fff0f0;
+  color: #d63b3b;
+  border: 1px solid #f5c2c2;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+  font-size: 13px;
+}
+
+:root[data-theme="dark"] .error-box {
+  background: #2c1a1d;
+  color: #ff8585;
+  border-color: #59252a;
+}
+
+/* ==============================================================================
+   スマホ・小型端末向けレスポンシブスタイル (幅600px以下)
+   ============================================================================== */
+@media (max-width: 600px) {
+  .wrap {
+    padding: 14px 12px 30px;
+  }
+
+  header {
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-size: 18px;
+  }
+
+  .kpis {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .kpi {
+    padding: 10px;
+  }
+
+  .kpi .v {
+    font-size: 22px;
+  }
+
+  .tabs button {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .person {
+    grid-template-columns: 70px 1fr 110px;
+    gap: 8px;
+    font-size: 12px;
+  }
+}
+
+/* ==============================================================================
+   印刷 (PDF保存) 向けスタイル
+   1〜2ページに収まるように余白と要素を最適化します
+   ============================================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm 10mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #1d2330 !important;
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .wrap {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* 画面操作用のUIは印刷時に非表示 */
+  .header-actions,
+  .tabs,
+  .hint {
+    display: none !important;
+  }
+
+  header {
+    margin-bottom: 10px !important;
+    border-bottom: 2px solid #2b313d;
+    padding-bottom: 4px;
+  }
+
+  h1 {
+    font-size: 16px !important;
+  }
+
+  .upd {
+    font-size: 10px !important;
+    color: #555 !important;
+  }
+
+  h2 {
+    font-size: 12px !important;
+    margin: 10px 0 4px !important;
+  }
+
+  /* KPIカード */
+  .kpis {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 6px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .kpi {
+    background: #f8f9fb !important;
+    border: 1px solid #ddd !important;
+    border-radius: 6px !important;
+    padding: 6px 8px !important;
+  }
+
+  .kpi .l {
+    font-size: 9.5px !important;
+    color: #555 !important;
+  }
+
+  .kpi .v {
+    font-size: 18px !important;
+    line-height: 1.1 !important;
+  }
+
+  .kpi .d {
+    font-size: 9px !important;
+  }
+
+  /* 経営判断カード */
+  .card {
+    background: #ffffff !important;
+    border: 1px solid #ddd !important;
+    border-radius: 6px !important;
+    padding: 8px 10px !important;
+  }
+
+  .dec {
+    border-left: 3px solid #d63b3b !important;
+    margin-bottom: 8px !important;
+  }
+
+  .dec li {
+    margin: 3px 0 !important;
+    font-size: 10.5px !important;
+  }
+
+  /* 印刷時は「プロジェクト別」「個人別」の両方を一望できるように表示 */
+  #proj {
+    display: block !important;
+    margin-bottom: 12px;
+  }
+
+  #ppl {
+    display: block !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  #ppl h2.print-only-heading {
+    display: block !important;
+  }
+
+  /* テーブル */
+  .scroll {
+    overflow: visible !important;
+  }
+
+  table {
+    min-width: 100% !important;
+    font-size: 10px !important;
+  }
+
+  th {
+    padding: 4px 6px !important;
+    font-size: 9.5px !important;
+    border-bottom: 1.5px solid #bbb !important;
+    background: #f0f2f5 !important;
+  }
+
+  td {
+    padding: 5px 6px !important;
+    border-bottom: 1px solid #eee !important;
+  }
+
+  .pb {
+    height: 6px !important;
+    min-width: 60px !important;
+    margin-bottom: 2px !important;
+  }
+
+  /* 印刷時は展開された詳細もすっきり収める */
+  .detail td {
+    padding: 6px 10px !important;
+    background: #f8f9fa !important;
+    border-bottom: 1px solid #ddd !important;
+  }
+
+  .detail h3 {
+    font-size: 10px !important;
+    margin: 4px 0 2px !important;
+  }
+
+  .detail ul {
+    padding-left: 14px !important;
+  }
+
+  .detail li {
+    margin: 1px 0 !important;
+    font-size: 9.5px !important;
+  }
+
+  /* 個人別グリッドを印刷時は2列でコンパクトに配置 */
+  .ppl {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px 16px !important;
+  }
+
+  .person {
+    grid-template-columns: 60px 1fr 100px !important;
+    gap: 6px !important;
+    font-size: 9.5px !important;
+  }
+
+  .load {
+    height: 7px !important;
+  }
+
+  .note {
+    font-size: 9.5px !important;
+    margin-top: 6px !important;
+  }
+
+  /* 改ページ設定 */
+  tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
+
+/* 印刷専用の見出し（画面上は非表示） */
+.print-only-heading {
+  display: none;
+}

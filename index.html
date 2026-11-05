@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>経営ダッシュボード</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <!-- ヘッダー -->
+  <header>
+    <div class="header-left">
+      <h1 id="dash-title">経営ダッシュボード</h1>
+      <div class="upd" id="dash-upd">最終更新: --</div>
+    </div>
+    <div class="header-actions">
+      <button class="action-btn" id="theme-btn" title="ダークモード / ライトモードを切り替えます">
+        <span id="theme-icon">🌙</span> <span id="theme-text">ダーク</span>
+      </button>
+      <button class="action-btn" id="print-btn" title="A4サイズ1〜2ページで印刷またはPDF保存します">
+        <span>🖨️</span> <span>印刷 / PDF</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- KPIカードエリア（data.jsから自動集計） -->
+  <div class="kpis" id="kpis"></div>
+
+  <!-- 経営判断が必要な事項（最上部に目立たせる） -->
+  <h2>経営判断が必要な事項</h2>
+  <div class="card dec">
+    <ul id="dec"></ul>
+  </div>
+
+  <!-- タブ切り替えボタン -->
+  <div class="tabs">
+    <button class="on" data-t="proj">プロジェクト別</button>
+    <button data-t="ppl">個人別</button>
+  </div>
+
+  <!-- プロジェクト別タブ -->
+  <div id="proj">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
+      <p class="hint" style="margin:0;">💡 行をクリックすると詳細（リスク・主要タスク）が開きます。</p>
+      <button class="action-btn" id="toggle-all-btn" style="padding:4px 8px;font-size:11px;">
+        <span id="toggle-all-text">すべての詳細を開く</span>
+      </button>
+    </div>
+    <div class="card scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>状態</th>
+            <th>プロジェクト</th>
+            <th>進捗</th>
+            <th>次のマイルストーン</th>
+            <th>責任者</th>
+            <th>ひとこと</th>
+          </tr>
+        </thead>
+        <tbody id="tb"></tbody>
+      </table>
+    </div>
+    <p class="note">信号の基準: 🔴=マイルストーンが1週間以上遅延 ／ 🟡=遅延の恐れあり（期日超過1〜6日、または期日直前で進捗遅れ） ／ 🟢=順調（※期日と進捗から自動判定、data.js での手動指定も優先反映）</p>
+  </div>
+
+  <!-- 個人別タブ -->
+  <div id="ppl" style="display:none">
+    <h2 class="print-only-heading">担当者別の負荷状況</h2>
+    <div class="card">
+      <p class="hint">目的は評価ではなく、負荷の偏りの発見とリソース配分です。</p>
+      <div class="ppl" id="pp"></div>
+      <p class="note">負荷が高い人(赤)に業務が集中しています。再配分の検討材料としてご覧ください。</p>
+    </div>
+  </div>
+</div>
+
+<!-- データファイルの読み込み（担当者が編集するのはこのファイルのみ） -->
+<script src="data.js"></script>
+
+<!-- 画面描画ロジック（素のJavaScript / ビルド・外部通信不要） -->
+<script>
+(function() {
+  "use strict";
+
+  // ユーティリティ関数
+  function $(id) {
+    return document.getElementById(id);
+  }
+
+  function escapeHtml(str) {
+    if (str == null) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  // 日付文字列をパースして Date オブジェクト（00:00:00）を返す
+  function parseDateString(str, fallbackYear) {
+    if (!str) return null;
+    str = String(str).trim();
+    // YYYY-MM-DD または YYYY/MM/DD
+    var matchYMD = str.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+    if (matchYMD) {
+      return new Date(parseInt(matchYMD[1], 10), parseInt(matchYMD[2], 10) - 1, parseInt(matchYMD[3], 10));
+    }
+    // MM/DD または MM-DD
+    var matchMD = str.match(/^(\d{1,2})[-\/](\d{1,2})/);
+    if (matchMD) {
+      var year = fallbackYear || new Date().getFullYear();
+      return new Date(year, parseInt(matchMD[1], 10) - 1, parseInt(matchMD[2], 10));
+    }
+    var d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+    return null;
+  }
+
+  // データチェック
+  if (typeof window.DASHBOARD_DATA === "undefined") {
+    document.body.innerHTML = '<div class="wrap"><div class="error-box"><h3>⚠️ データ読み込みエラー</h3><p>data.js が正しく読み込めませんでした。index.html と同じフォルダに data.js があるか、また data.js に構文エラー（カンマの不足など）がないかご確認ください。</p></div></div>';
+    return;
+  }
+
+  var D = window.DASHBOARD_DATA;
+
+  // 1. タイトルと更新日
+  if ($("dash-title")) $("dash-title").textContent = D.title || "経営ダッシュボード";
+  if ($("dash-upd")) $("dash-upd").textContent = "最終更新: " + (D.updatedAt || "未設定");
+
+  // 基準日（判定基準日。未設定なら現在日）
+  var baseDate = parseDateString(D.baseDate) || new Date();
+  baseDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+
+  // 2. 信号（status）の判定処理
+  // 基準:
+  // - 手動指定があればそれを最優先
+  // - 進捗100%なら順調
+  // - 期日超過7日以上: 遅延 (r)
+  // - 期日超過1〜6日、または期日3日以内で進捗90%未満: 注意 (y)
+  // - それ以外: 順調 (g)
+  function determineStatus(proj) {
+    var manual = proj.status || proj.s;
+    if (manual) {
+      var m = String(manual).trim().toLowerCase();
+      if (m === "r" || m === "red" || m === "遅延") return "r";
+      if (m === "y" || m === "yellow" || m === "注意") return "y";
+      if (m === "g" || m === "green" || m === "順調") return "g";
+    }
+
+    var progress = Number(proj.progress != null ? proj.progress : proj.pr != null ? proj.pr : 0);
+    if (progress >= 100) return "g";
+
+    var rawDate = proj.dueDate || proj.d;
+    if (!rawDate) return "g";
+
+    var dueDate = parseDateString(rawDate, baseDate.getFullYear());
+    if (!dueDate) return "g";
+
+    var diffDays = Math.ceil((dueDate.getTime() - baseDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= -7) {
+      return "r"; // 7日以上超過
+    } else if (diffDays < 0) {
+      return "y"; // 1〜6日超過
+    } else if (diffDays <= 3 && progress < 90) {
+      return "y"; // 残り3日以内で進捗未達
+    } else {
+      return "g"; // 順調
+    }
+  }
+
+  // プロジェクト配列の正規化とステータス計算
+  var rawProjects = D.projects || D.P || [];
+  var projects = rawProjects.map(function(p) {
+    var st = determineStatus(p);
+    return {
+      status: st,
+      name: p.name || p.n || "",
+      progress: Number(p.progress != null ? p.progress : p.pr != null ? p.pr : 0),
+      milestone: p.milestone || p.ms || "",
+      dueDateDisplay: p.dueDate || p.d || "",
+      owner: p.owner || p.o || "",
+      comment: p.comment || p.c || "",
+      risks: p.risks || p.risk || [],
+      tasks: p.tasks || []
+    };
+  });
+
+  // 担当者配列の正規化
+  var rawMembers = D.members || D.M || [];
+  var members = rawMembers.map(function(m) {
+    return {
+      name: m.name || m.n || "",
+      weeklyTasks: Number(m.weeklyTasks != null ? m.weeklyTasks : m.w != null ? m.w : 0),
+      overdueTasks: Number(m.overdueTasks != null ? m.overdueTasks : m.o != null ? m.o : 0),
+      loadPercentage: Number(m.loadPercentage != null ? m.loadPercentage : m.l != null ? m.l : 0)
+    };
+  });
+
+  // 3. KPI の自動集計
+  var activeCount = projects.length;
+  var delayedCount = projects.filter(function(p) { return p.status === "r"; }).length;
+  var warningCount = projects.filter(function(p) { return p.status === "y"; }).length;
+  var overdueCount = members.reduce(function(sum, m) { return sum + m.overdueTasks; }, 0);
+  var completedCount = Number(D.completedTasksThisWeek != null ? D.completedTasksThisWeek : (D.completedTasks != null ? D.completedTasks : 23));
+
+  var lastWeek = D.lastWeek || {};
+
+  function formatDiff(current, last, type) {
+    if (last == null || isNaN(last)) {
+      return { text: "先週データなし", cls: "" };
+    }
+    var diff = current - last;
+    if (diff === 0) {
+      return { text: "先週と変わらず", cls: "" };
+    }
+    var isPlus = diff > 0;
+    var sign = isPlus ? "+" : "";
+
+    if (type === "badIfUp") {
+      // 遅延・期限超過: 増えると悪化(赤 up)、減ると改善(緑 down)
+      return {
+        text: isPlus ? "▲ 先週より" + diff + "件増" : "▼ 先週より" + Math.abs(diff) + "件減",
+        cls: isPlus ? "up" : "down"
+      };
+    } else if (type === "goodIfUp") {
+      // 完了数: 増えると改善(緑 down)、減ると悪化(赤 up)
+      return {
+        text: (isPlus ? "▲" : "▼") + " 先週比 " + sign + diff,
+        cls: isPlus ? "down" : "up"
+      };
+    } else {
+      // 通常
+      return {
+        text: (isPlus ? "▲" : "▼") + " 先週比 " + sign + diff,
+        cls: ""
+      };
+    }
+  }
+
+  var kpiList = [
+    { label: "進行中プロジェクト", val: activeCount, diff: formatDiff(activeCount, lastWeek.activeProjects, "neutral") },
+    { label: "🔴 遅延", val: delayedCount, diff: formatDiff(delayedCount, lastWeek.delayedProjects, "badIfUp") },
+    { label: "🟡 注意", val: warningCount, diff: formatDiff(warningCount, lastWeek.warningProjects, "neutral") },
+    { label: "期限超過タスク", val: overdueCount, diff: formatDiff(overdueCount, lastWeek.overdueTasks, "badIfUp") },
+    { label: "今週の完了タスク", val: completedCount, diff: formatDiff(completedCount, lastWeek.completedTasks, "goodIfUp") }
+  ];
+
+  if ($("kpis")) {
+    $("kpis").innerHTML = kpiList.map(function(k) {
+      return '<div class="kpi">' +
+        '<div class="l">' + escapeHtml(k.label) + '</div>' +
+        '<div class="v">' + k.val + '</div>' +
+        '<div class="d ' + (k.diff.cls || "") + '">' + escapeHtml(k.diff.text) + '</div>' +
+      '</div>';
+    }).join("");
+  }
+
+  // 4. 経営判断が必要な事項の描画
+  var rawDecisions = D.decisions || D.D || [];
+  if ($("dec")) {
+    if (rawDecisions.length === 0) {
+      $("dec").innerHTML = '<li style="color:var(--sub)">現在、経営判断を要する保留事項はありません。</li>';
+    } else {
+      $("dec").innerHTML = rawDecisions.map(function(d) {
+        var title = d.title || d.t || "";
+        var decider = d.decider || d.w || "";
+        var deadline = d.deadline || d.b || "";
+        var project = d.project || d.p || "";
+        return '<li><b>' + escapeHtml(title) + '</b><br><span class="tag">決める人:' + escapeHtml(decider) + ' ／ 期限:' + escapeHtml(deadline) + ' ／ ' + escapeHtml(project) + '</span></li>';
+      }).join("");
+    }
+  }
+
+  // 5. プロジェクトテーブルの描画
+  var statusLabels = { g: "順調", y: "注意", r: "遅延" };
+  if ($("tb")) {
+    $("tb").innerHTML = projects.map(function(p, i) {
+      var risksHtml = p.risks && p.risks.length > 0
+        ? p.risks.map(function(r) { return '<li>' + escapeHtml(r) + '</li>'; }).join("")
+        : '<li>特になし</li>';
+
+      var tasksHtml = p.tasks && p.tasks.length > 0
+        ? p.tasks.map(function(t) { return '<li>' + escapeHtml(t) + '</li>'; }).join("")
+        : '<li>直近タスクなし</li>';
+
+      return '<tr class="p" data-i="' + i + '">' +
+        '<td><span class="sig s-' + p.status + '"></span>' + statusLabels[p.status] + '</td>' +
+        '<td><b>' + escapeHtml(p.name) + '</b></td>' +
+        '<td><div class="pb"><i style="width:' + Math.min(100, Math.max(0, p.progress)) + '%"></i></div>' + p.progress + '%</td>' +
+        '<td>' + escapeHtml(p.milestone) + '<br><span class="tag">期日 ' + escapeHtml(p.dueDateDisplay) + '</span></td>' +
+        '<td>' + escapeHtml(p.owner) + '</td>' +
+        '<td>' + escapeHtml(p.comment) + '</td>' +
+      '</tr>' +
+      '<tr class="detail" id="d' + i + '" style="display:none">' +
+        '<td colspan="6">' +
+          '<h3>リスク・課題</h3><ul>' + risksHtml + '</ul>' +
+          '<h3>主要タスク(担当・期限)</h3><ul>' + tasksHtml + '</ul>' +
+        '</td>' +
+      '</tr>';
+    }).join("");
+
+    // 行クリックでアコーディオン開閉
+    $("tb").addEventListener("click", function(e) {
+      var tr = e.target.closest("tr.p");
+      if (!tr) return;
+      var detailRow = $("d" + tr.dataset.i);
+      if (detailRow) {
+        detailRow.style.display = detailRow.style.display === "none" ? "table-row" : "none";
+      }
+    });
+
+    // すべての詳細を開く / 閉じるトグルボタン
+    var toggleBtn = $("toggle-all-btn");
+    var toggleText = $("toggle-all-text");
+    if (toggleBtn && toggleText) {
+      toggleBtn.addEventListener("click", function() {
+        var details = document.querySelectorAll("tr.detail");
+        var hasClosed = Array.from(details).some(function(row) {
+          return row.style.display === "none";
+        });
+        details.forEach(function(row) {
+          row.style.display = hasClosed ? "table-row" : "none";
+        });
+        toggleText.textContent = hasClosed ? "すべての詳細を閉じる" : "すべての詳細を開く";
+      });
+    }
+  }
+
+  // 6. 個人別負荷の描画
+  if ($("pp")) {
+    $("pp").innerHTML = members.map(function(m) {
+      var col = m.loadPercentage >= 90 ? "var(--r)" : m.loadPercentage >= 70 ? "var(--y)" : "var(--g)";
+      return '<div class="person">' +
+        '<b>' + escapeHtml(m.name) + '</b>' +
+        '<div class="load"><i style="width:' + Math.min(100, Math.max(0, m.loadPercentage)) + '%;background:' + col + '"></i></div>' +
+        '<span class="tag">今週' + m.weeklyTasks + '件 ／ 超過' + m.overdueTasks + '件</span>' +
+      '</div>';
+    }).join("");
+  }
+
+  // 7. タブ切り替えロジック
+  document.querySelectorAll(".tabs button").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      document.querySelectorAll(".tabs button").forEach(function(b) { b.classList.remove("on"); });
+      btn.classList.add("on");
+      var target = btn.dataset.t;
+      if ($("proj")) $("proj").style.display = target === "proj" ? "block" : "none";
+      if ($("ppl")) $("ppl").style.display = target === "ppl" ? "block" : "none";
+    });
+  });
+
+  // 8. ダークモード切り替えロジック
+  var currentTheme = localStorage.getItem("dashboard_theme");
+  function applyTheme(theme) {
+    if (theme === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+      if ($("theme-icon")) $("theme-icon").textContent = "☀️";
+      if ($("theme-text")) $("theme-text").textContent = "ライト";
+    } else {
+      document.documentElement.setAttribute("data-theme", "light");
+      if ($("theme-icon")) $("theme-icon").textContent = "🌙";
+      if ($("theme-text")) $("theme-text").textContent = "ダーク";
+    }
+  }
+
+  if (currentTheme) {
+    applyTheme(currentTheme);
+  } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+    applyTheme("dark");
+  } else {
+    applyTheme("light");
+  }
+
+  if ($("theme-btn")) {
+    $("theme-btn").addEventListener("click", function() {
+      var isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      var nextTheme = isDark ? "light" : "dark";
+      applyTheme(nextTheme);
+      localStorage.setItem("dashboard_theme", nextTheme);
+    });
+  }
+
+  // 9. 印刷・PDF保存ボタン
+  if ($("print-btn")) {
+    $("print-btn").addEventListener("click", function() {
+      window.print();
+    });
+  }
+
+})();
+</script>
+</body>
+</html>
